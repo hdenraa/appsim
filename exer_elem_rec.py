@@ -15,6 +15,7 @@ class ExerElem:
         self.azure_conn = azure_conn
     
     def find_match_element(self,task,elem_lists_dict,task_seq_to_elem_dict):
+        self.logger.debug(f'Find element for task: {task}')
         match_done = False
         match_99_count = 0
         element_found = True
@@ -23,10 +24,12 @@ class ExerElem:
         
         while not match_done:
             if task['seq'] in task_seq_to_elem_dict.keys():
+                # Task already matched to element peiviously, use this
                 elem = task_seq_to_elem_dict[task['seq']]
                 task['elem']=elem.copy()
                 match_done = True
             else:
+                #Find element that match the task type
                 if task['type'] in elem_lists_dict.keys():
                     elem = elem_lists_dict[task['type']].pop(0)
                     if len(elem_lists_dict[task['type']]) == 0:
@@ -46,7 +49,28 @@ class ExerElem:
                     match_done = True
                     if not match_99_count > 0:
                         element_found = False
-        
+                        '''
+                    for elem_no in range(1,elem_lists_dict[task['elementCount']]):
+                        elem = elem_lists_dict[task['type']].pop(0)
+                        if len(elem_lists_dict[task['type']]) == 0:
+                            del elem_lists_dict[task['type']]
+                        task['elem']=elem.copy()
+                        if task['seq'] == 99:
+                            elem_id_list.append(elem['elementId'])
+                            device_id_list.append({elem['deviceId']: elem['elementId']})
+                            task['elem']['elementId'] = elem_id_list
+                            task['elem']['deviceId'] = device_id_list
+                            match_99_count += 1
+                        else:
+                            task_seq_to_elem_dict[task['seq']] = task['elem']
+                            match_done = True
+                            break
+                            
+                else:
+                    match_done = True
+                    if not match_99_count > 0:
+                        element_found = False
+        '''
         return element_found
     
     def find_and_match_elem_tasks(self,obj,elem_lists_dict,task_seq_to_elem_dict):
@@ -149,10 +173,9 @@ class ExerElem:
         return self.elem_dict
 
     def add_element(self,elemdict):
-        self.logger.debug(f'ExerElem: adding new element: {elemdict}')
+        self.logger.debug(f'ExerElem: adding element: {elemdict}')
         existingElement = (list(filter(lambda element: element if element['deviceId'] == elemdict['deviceId'] else None, list(self.elem_dict.values()))))
-        self.logger.debug(f'ExerElem: adding known element: {existingElement}')
-
+ 
         if len(existingElement) == 1:
             existingElement = existingElement[0]
             self.logger.debug(f'Handle known element: {existingElement}')

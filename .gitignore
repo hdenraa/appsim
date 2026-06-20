@@ -1,4 +1,29 @@
-# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+*.pyd
+*.egg-info/
+dist/
+build/
+venv/
+env/
+ENV/
+.env
+.env.*
+.venv/
+.cache/
+.pytest_cache/
+pip-wheel-metadata/
+profile/
+profiler/
+*.prof
+.DS_Store
+/.vscode/
+.idea/
+result.json
+/.pytest_cache/
+__pycache__/# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class

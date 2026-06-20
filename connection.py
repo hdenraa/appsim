@@ -62,6 +62,7 @@ class WebsocketServer():
         # print('WS send outbound message: %s at: %s',msg_dict,datetime.now())
         msg_json = json.dumps(msg_dict)
         await self.websocket_dict[msg_dict['deviceId']].send(msg_json)
+        #Gather() kan bruges til at sende til flere clients
         # print('WS message sent: %s',datetime.now())
         
     async def outbound_loop(self):
@@ -103,4 +104,4 @@ async def main(host,port,file):
     await ws_server.start_server()
 
 if __name__ == '__main__':
-    asyncio.run(main("192.168.0.100",8080,"file"))
+    asyncio.run(main("192.168.8.123",8080,"file"))

@@ -1160,6 +1160,168 @@
           ]
         }
       ]
+    },
+    {
+      "exercise": "Same time test",
+      "name": "Same time test",
+      "type": "1v1",
+      "description": "Test",
+      "fullDescription": "Simultanius set of ports",
+      "outline": 
+        {
+          "orientation": "Portrait",
+          "width": 1440,
+          "height": 2960,
+          "elements": [
+            {
+              "type": "Port",
+              "id": 1,
+              "shape": {
+                "type": "Rectangle",
+                "width": 300,
+                "height": 80
+              },
+              "x": 400,
+              "y": 300,
+              "rotation": 90
+            },
+            {
+              "type": "Port",
+              "id": 2,
+              "shape": {
+                "type": "Rectangle",
+                "width": 300,
+                "height": 80
+              },
+              "x": 820,
+              "y": 300,
+              "rotation": 90
+            }
+          ]
+        },
+      "elements": [
+        {
+          "type": "Port",
+          "minVersion": "1.0",
+          "minNumber": "2",
+          "maxNumber": "6"
+        }
+      ],
+      "taskList": [
+        {
+        "taskType":"Ctrl",
+        "type": "Repeat",
+        "taskList": [
+            {
+              "seq": 1,
+              "taskType":"Ctrl",
+              "type": "SameTime",
+              "resultType":"Sync",
+              "taskList": [
+                {
+                  "seq": 2,
+                  "taskType":"Elem",
+                  "type": "Port",
+                  "resultType":"Sync",
+                  "setPayload": {
+                    "task": "set",
+                    "parameters": {
+                      "silent": "AppInput",
+                      "timeout": "AppInput",
+                      "path": "Interpreter"
+                    }
+                  }
+                },
+                {
+                  "seq": 3,
+                  "taskType":"Elem",
+                  "type": "Port",
+                  "resultType":"Sync",
+                  "setPayload": {
+                    "task": "set",
+                    "parameters": {
+                      "silent": "AppInput",
+                      "timeout": "AppInput",
+                      "path": "Interpreter"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "endCondition": {
+        "type": "countSolved",
+        "condition": 10
+      },
+      "parameters": [
+        {
+          "name": "endCondition",
+          "paramType": "App",
+          "type": "Int",
+          "validValues": [
+            {
+              "type": "numberType",
+              "minValue": 10,
+              "maxValue": 1000
+            }
+          ]
+        },
+        {
+          "name": "timeout",
+          "paramType": "Elem",
+          "type": "Int",
+          "validValues": [
+            {
+              "type": "numberType",
+              "minValue": 1000,
+              "maxValue": 10000
+            }
+          ]
+        },
+        {
+          "name": "silent",
+          "paramType": "Elem",
+          "type": "List",
+          "validValues": [
+            {
+              "type": "Str",
+              "value": "Element light",
+              "default": true
+            },
+            {
+              "type": "Str",
+              "value": "Heads up only"
+            }
+          ]
+        },
+        {
+          "name": "Direction",
+          "paramType": "Elem",
+          "type": "List",
+          "validValues": [
+            {
+              "type": "Str",
+              "value": "No",
+              "default": true
+            },
+            {
+              "type": "Str",
+              "value": "Left to right"
+            },
+            {
+              "type": "Str",
+              "value": "Right to left"
+            },
+            {
+              "type": "Str",
+              "value": "Random"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
+

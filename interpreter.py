@@ -25,6 +25,7 @@ class Interpreter():
         self.task_result_list = []
         self.countdown_count = 0
         self.azure_conn = azure_conn
+
         random.seed(str(datetime.now()))
 
     def countdown(self):
@@ -52,7 +53,7 @@ class Interpreter():
                 return None
     
     async def run_exercise(self,user,exer_name,app_parameters,elem_parameters):
-        self.task_result_list = []
+        self.task_result_list = [] #tasks set with recieved or pending results
         self.start_time = datetime.now()
         exercise_result = {
             'ExecId': str(uuid.uuid4()),
@@ -67,12 +68,10 @@ class Interpreter():
             }
         }
 
-        #self.countdown()
-
         task_result_template = {
             'task': {},
-            'setTime': datetime.now(),
-            'replyTime': datetime.now(),
+            'setTime': str(datetime.now()),
+            'replyTime': str(datetime.now()),
             'reply': {}
         }
 
@@ -88,33 +87,27 @@ class Interpreter():
         wait_for_anwser = False
         task_stack = copy.deepcopy(exercise['taskList'])
         while self.state.exer_running.is_active:
-            if not wait_for_anwser:
+            # Exercise task are set and their replys handled here
+            if not wait_for_anwser: # handle next task if True
                 self.logger.debug(f'task stack: {task_stack}\n\n')
                 task = copy.deepcopy(task_stack.pop(0))
+
+
+                if 'resultType' in task and task['resultType'] == 'Sync':
+                    wait_for_anwser = True
+                else:
+                    wait_for_anwser = False
+
                 set_time = datetime.now()
                 self.logger.debug(f' handling task: {task}\n\n')
                 if task['taskType'] == 'Elem':
-                    task_result = {}
+                    task_result = copy.deepcopy(task_result_template)
                     task_result['task'] = task
                     task_result['setTime'] = str(set_time)
                     self.task_result_list.append(task_result)
-                    if 'parameters' in task['setPayload']:
-                        param = task['setPayload']['parameters']
-                        self.logger.debug(f'element set parameters: {param}\n\n')
-                        for k,v in task['setPayload']['parameters'].items():
-                            if v == "Interpreter":
-                                task['setPayload']['parameters'][k] = self.handle_interpreter_parameter(exer_name,k)
-                            elif k in elem_parameters.keys():
-                                task['setPayload']['parameters'][k] = elem_parameters[k]
-                            else:
-                                self.logger.debug(f'parameter: {k} unhandled')
-                        self.logger.debug(f'setting task: {task} at: {self.current_time}')
-                    await self.set_task(task)
+    
+                    await self.set_task(task,elem_parameters,exer_name)
 
-                    if task['resultType'] == 'Sync':
-                        wait_for_anwser = True
-                    else:
-                        wait_for_anwser = False
                     
                 elif task['taskType'] == 'Ctrl':
                     repeat_tasks = []
@@ -125,24 +118,67 @@ class Interpreter():
                             task_stack = repeat_tasks + task_stack
                         else:
                             task_stack = task['taskList'] + [task] + task_stack
-                    if task['type'] == 'Random':
-                        task_stack = [random.choice(task['taskList'])] + task_stack
-
+                    elif task['type'] == 'Random':
+                        task_stack = [random.choice(task['taskList'])] + task + task_stack
+                    elif task['type'] == 'SameTime':
+                        #The sameTime ctrl sub taskList contain elements that should be set at the same time
+                        self.logger.debug(f'sameTime task: {task}')
+                        sub_task_list = []
+                        for sub_task in task['taskList']:
+                            sub_task_list.append(self.set_task(sub_task,elem_parameters,exer_name))
+                            task_result = copy.deepcopy(task_result_template)
+                            task_result['task'] = task
+                            task_result['setTime'] = str(set_time)
+                            self.task_result_list.append(task_result)
+                        self.logger.debug(f'sameTime gather tasks for: {sub_task_list}')
+                        await asyncio.gather(*sub_task_list)
+            
+            # Handle messages from elements
             if not self.ws_inbound_queue.empty():
                 input_json = await self.ws_inbound_queue.get()
                 input = json.loads(input_json)
                 self.current_time = datetime.now()
                 self.logger.debug(f'handling result: {input} at: {self.current_time}')
 
+
                 if 'payload' in input:
+                    # Result from element
                     self.logger.debug(f'processing time {self.current_time - set_time}')
                     if "solved" in input["payload"]:
-                        self.task_result_list[-1]['replyTime'] = str(self.current_time)
-                        self.task_result_list[-1]['reply'] = input
-                        await self.heads_up_queue.put(0)
+                        #Find the tasks that was set and no reply has been recieved and update the result
+                        for task_result in filter(lambda tr: tr['reply'] == {}, self.task_result_list):
+                            if  task_result['task']['taskType'] == 'Ctrl' and task_result['task']['type'] == 'SameTime':
+                                for  sub_task in task_result['task']['taskList']:
+                                    if sub_task['elem']['elementId'] == input['elementId']:
+                                        task_result['replyTime'] = str(self.current_time)
+                                        task_result['reply'] = input
+
+                                        if task_result['task']['resultType'] == 'Sync':
+                                            sameTime_task_results = list(filter(lambda tr: tr['task'] == task_result['task'] and tr['reply'] != {}, self.task_result_list))
+                                            sameTime_subtasks = task_result['task']['taskList']
+                                            self.logger.debug(f'SameTime task results: {sameTime_task_results}')
+                                            self.logger.debug(f'SameTime sub task: {sameTime_subtasks}')
+                                            time.sleep(1)
+                                            if len(sameTime_task_results) == len(task_result['task']['taskList']):
+                                                self.logger.debug('All sameTime tasks done')
+                                                wait_for_anwser = False
+                                            else:
+                                                wait_for_anwser = True
+                                        break
+
+                            elif task_result['task']['elem']['elementId'] == input['elementId']:
+                                # A task can be set multiple times, but only one can be pending answer
+                                task_result['replyTime'] = str(self.current_time)
+                                task_result['reply'] = input
+                                wait_for_anwser = False
+                                break
+
+                        await self.heads_up_queue.put({input['elementId']:input['payload']['solved']})
                         input = {}
+                    else:
+                        self.logger.debug(f'Unhandled input: {input}')
                 
-                    wait_for_anwser = False
+
             
             if self.check_end_condition(self.task_result_list,exercise['endCondition'],task_stack):
                 await self.state.send('evt_exer_cycle')
@@ -155,14 +191,17 @@ class Interpreter():
         
         self.handle_result(exercise_result)
 
-    
+
     def check_end_condition(self,task_result_list,end_condition,task_stack):
+        self.logger.debug(f'end condition task stack {task_stack}')
         if len(task_stack) == 0:
             return True
         
         if end_condition['type'] == 'countSolved':
-            solved_results = (list(filter(lambda result: result if 'reply' in result and result['reply']["payload"]['solved'] == True else None, task_result_list)))
-            return len(solved_results) >= end_condition['condition']
+            solved_results = len(list(filter(lambda result: result if result['reply'] != {} and result['reply']["payload"]['solved'] == True else None, task_result_list)))
+            print(f'Solved results: {solved_results}')
+            #solved_results = (list(filter(lambda result: result if 'reply' in result and result['reply']["payload"]['solved'] == True else None, task_result_list)))
+            return solved_results >= end_condition['condition']
         elif end_condition['type'] == 'time':
             return self.current_time - self.start_time > timedelta(seconds=end_condition['condition'])
 
@@ -172,7 +211,19 @@ class Interpreter():
         self.azure_conn.upload_result(result)
 
 
-    async def set_task(self,task):
+    async def set_task(self,task,elem_parameters,exer_name):
+        if 'parameters' in task['setPayload']:
+            param = task['setPayload']['parameters']
+            self.logger.debug(f'element set parameters: {param}\n\n')
+            for k,v in task['setPayload']['parameters'].items():
+                if v == "Interpreter":
+                    task['setPayload']['parameters'][k] = self.handle_interpreter_parameter(exer_name,k)
+                elif k in elem_parameters.keys():
+                    task['setPayload']['parameters'][k] = elem_parameters[k]
+                else:
+                    self.logger.debug(f'parameter: {k} unhandled')
+            self.logger.debug(f'setting task: {task} at: {self.current_time}')
+
         if task['seq'] == 99:
             device_list = task['elem']['deviceId'].copy()
             if self.prev_device in device_list:
@@ -198,7 +249,7 @@ class Interpreter():
         }
 
         await self.ws_outbound_queue.put(setDict)
-        await self.heads_up_queue.put(element_id)
+        await self.heads_up_queue.put({element_id:"set"})
 
     def find_tasks(self,obj,key,value,task_list):
         if isinstance(obj, dict):

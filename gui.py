@@ -100,7 +100,7 @@ class Gui:
                     self.rink.rink_surface.blit(self.rink.elem_surface,(0,0))
                     self.surfaces['game']['sur'].blit(self.rink.rink_surface,self.rink.rink_surface.get_rect(center=self.surfaces['game']['sur'].get_rect().center))
                 else:
-                    await self.draw_heads_up_elements(self.exer_elem.get_runtime_dict()[self.state.current_exercise]['outline'])
+                    await self.init_heads_up_elements(self.exer_elem.get_runtime_dict()[self.state.current_exercise]['outline'])
                 break
 
     def start_exercise(self):
@@ -231,40 +231,76 @@ class Gui:
 
     async def draw_heads_up_elements(self,outline):
         #self.logger.debug(f'drawing heads_up elements:')
-        if not self.heads_up_queue.empty():
-            self.set_element = await self.heads_up_queue.get()
-            self.logger.debug(f'heads_up queue element: {self.set_element}')
+
+        queue_list = []
+        while not self.heads_up_queue.empty():
+            queue_list.append(await self.heads_up_queue.get())
         
-        self.surfaces['game']['sur'].fill(self.dark_transparent_blue)
-
-
+        if len(queue_list) > 0:
+            self.logger.debug(f'heads_up queue list: {queue_list}')
+        
         for element in outline['elements']:
             #print('draw element\n')
             #print(element)
 
-            if self.set_element == element['id']:
-                color = (0,255,0)
-            else:
-                color = (0,0,255)
+            if len(queue_list) > 0:
+                self.logger.debug(f'drawing heads_up element:{element}')
+                if {element['id']:'init'} in queue_list:
+                    queueIndex = queue_list.index({element['id'],'init'})
+                    queue_element = queue_list.pop(queueIndex)
+                    color = (255,0,0)
+                elif {element['id']:'set'} in queue_list:
+                    self.logger.debug(f'set element:{element}')
+                    queueIndex = queue_list.index({element['id']:'set'})
+                    queue_element = queue_list.pop(queueIndex)
+                    self.logger.debug(f'remaining queue:{queue_list}')
+                    color = (0,255,0)
+                elif {element['id']:True} in queue_list:
+                    queueIndex = queue_list.index({element['id']:True})
+                    queue_element = queue_list.pop(queueIndex)
+                    color = (0,0,255)
+                elif {element['id']:False} in queue_list:
+                    queueIndex = queue_list.index({element['id']:False})
+                    queue_element = queue_list.pop(queueIndex)
+                    color = (0,0,255)
+                else:
+                    color = (255,255,255)
 
-            if element['type'] == 'Port':
-                element_rect = pygame.Rect(0, 0, element['shape']['width'], element['shape']['height'])
-                #rotated_rect.center = ((i + 1) * width // 4, height // 2)
-                element_surface = pygame.Surface((element['shape']['width'], element['shape']['height']), pygame.SRCALPHA)
-                pygame.draw.rect(element_surface, color, (0, 0,element['shape']['width'],element['shape']['height']))
-                element_surface = pygame.transform.rotate(element_surface,element['rotation'])
-                self.surfaces['game']['sur'].blit(element_surface,(element['x'],element['y']))
-            elif element['type'] == 'Triangle':
-                side_loc  = [(60,0,50),(-60,150,50),(0,30,300)]
-                element_surface = pygame.Surface((400, 400), pygame.SRCALPHA)
-                for rotation,x,y in side_loc:
-                    self.logger.debug(f'side loc: {rotation},{x},{y}')
-                    side_surface = pygame.Surface((element['shape']['width'], element['shape']['height']), pygame.SRCALPHA)
-                    pygame.draw.rect(side_surface, color, (0, 0,element['shape']['width'],element['shape']['height']))
-                    side_surface = pygame.transform.rotate(side_surface,rotation + element['rotation'])
-                    element_surface.blit(side_surface,(x,y))
+                await self.draw_element(element,color)
 
-                self.surfaces['game']['sur'].blit(element_surface,element_surface.get_rect(center=self.surfaces['game']['sur'].get_rect().center))
+    async def init_heads_up_elements(self,outline):
+        #self.logger.debug(f'drawing heads_up elements:')
+
+        self.surfaces['game']['sur'].fill(self.dark_transparent_blue)
+        
+        color = (0,0,255)
+        for element in outline['elements']:
+            #print('draw element\n')
+            #print(element)
+
+            await self.draw_element(element,color)
+
+    async def draw_element(self,element,color):
+        #self.logger.debug(f'drawing heads_up elements:')
+        if element['type'] == 'Port':
+            self.logger.debug(f'Display Port: {element}')
+            element_rect = pygame.Rect(0, 0, element['shape']['width'], element['shape']['height'])
+            #rotated_rect.center = ((i + 1) * width // 4, height // 2)
+            element_surface = pygame.Surface((element['shape']['width'], element['shape']['height']), pygame.SRCALPHA)
+            pygame.draw.rect(element_surface, color, (0, 0,element['shape']['width'],element['shape']['height']))
+            element_surface = pygame.transform.rotate(element_surface,element['rotation'])
+            self.surfaces['game']['sur'].blit(element_surface,(element['x'],element['y']))
+        elif element['type'] == 'Triangle':
+            side_loc  = [(60,0,50),(-60,150,50),(0,30,300)]
+            element_surface = pygame.Surface((400, 400), pygame.SRCALPHA)
+            for rotation,x,y in side_loc:
+                self.logger.debug(f'side loc: {rotation},{x},{y}')
+                side_surface = pygame.Surface((element['shape']['width'], element['shape']['height']), pygame.SRCALPHA)
+                pygame.draw.rect(side_surface, color, (0, 0,element['shape']['width'],element['shape']['height']))
+                side_surface = pygame.transform.rotate(side_surface,rotation + element['rotation'])
+            element_surface.blit(side_surface,(x,y))
+
+            self.surfaces['game']['sur'].blit(element_surface,element_surface.get_rect(center=self.surfaces['game']['sur'].get_rect().center))
 
     def reset_scoreboard(self):
         self.surfaces['score']['sur'].fill(self.transparent_blue)
@@ -297,8 +333,8 @@ class Gui:
         task_result_list = self.interpreter.task_result_list
 
         tasks_atempts = len(task_result_list)
-        tasks_solved = len(list(filter(lambda result: result if 'reply' in result and result['reply']["payload"]['solved'] == True else None, task_result_list)))
-        tasks_failed = len(list(filter(lambda result: result if 'reply' in result and result['reply']["payload"]['solved'] == False else None, task_result_list)))
+        tasks_solved = len(list(filter(lambda result: result if result['reply'] != {} and result['reply']["payload"]['solved'] == True else None, task_result_list)))
+        tasks_failed = len(list(filter(lambda result: result if result['reply'] != {} and result['reply']["payload"]['solved'] == False else None, task_result_list)))
 
         formatted_runtime = "{:02d}:{:02d}:{:02d}".format((runtime.seconds // 60) % 60,
                                                             runtime.seconds % 60, 
