@@ -2,7 +2,6 @@ import asyncio
 from interpreter import Interpreter
 from exer_elem_rec import ExerElem
 from connection import WebsocketServer
-from azure_connection import AzureConn
 from gui import Gui
 import queue
 import logging
@@ -89,15 +88,12 @@ async def main(host,port,file):
     
     app_state = AppState()
 
-    azure_conn = AzureConn(logger)
-    exer_elem = ExerElem(logger,azure_conn,app_state)
-    #exer_elem.load_exer_azure()
+    exer_elem = ExerElem(logger,app_state)
     exer_elem.load_exer('json/exercises_test.json')
-    #exer_elem.load_elem('json/elements.json') 
 
     ws_server = WebsocketServer(host,port,ws_inbound_queue,ws_outbound_queue,exer_elem,app_state)
 
-    interpreter = Interpreter(ws_inbound_queue,ws_outbound_queue,heads_up_queue,exer_elem,logger,azure_conn,app_state)
+    interpreter = Interpreter(ws_inbound_queue,ws_outbound_queue,heads_up_queue,exer_elem,logger,app_state)
     gui = Gui(interpreter,exer_elem,heads_up_queue,logger,app_state)
 
 

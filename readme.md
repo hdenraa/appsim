@@ -5,7 +5,6 @@
 This project consists of several modules that work together to create a graphical user interface (GUI) application with WebSocket communication and Azure integration. Below is an overview of the main modules:
 
 - `appsim.py`: Initializes and runs the main application, setting up the GUI, WebSocket server, and other components.
-- `azure_connection.py`: Handles communication with Azure services.
 - `connection.py`: Manages the WebSocket server for the application.
 - `exer_elem_rec.py`: Manages exercise elements.
 - `gui.py`: Manages the graphical user interface of the application.
@@ -24,12 +23,7 @@ The modules in this project communicate with each other through various mechanis
 - **`appsim.py`**:
   - Initializes the main components and sets up the communication channels.
   - Uses `asyncio.Queue` for communication between the WebSocket server, interpreter, and GUI.
-  - Calls methods from `azure_connection.py`, `exer_elem_rec.py`, `connection.py`, `interpreter.py`, and `gui.py` to initialize and manage the application state.
-
-- **`azure_connection.py`**:
-  - Provides methods for interacting with Azure services.
-  - Called by `appsim.py` and `interpreter.py` to load exercise data and upload results.
-
+- Calls methods from `exer_elem_rec.py`, `connection.py`, `interpreter.py`, and `gui.py` to initialize and manage the application state.
 - **`connection.py`**:
   - Manages the WebSocket server and handles inbound and outbound messages.
   - Uses `asyncio.Queue` to receive messages from and send messages to the `interpreter.py`.
@@ -198,21 +192,6 @@ Manages the WebSocket server for the application.
 
 - **Methods:**
   - [`start_server`](command:_github.copilot.openSymbolFromReferences?%5B%22%22%2C%5B%7B%22uri%22%3A%7B%22scheme%22%3A%22file%22%2C%22authority%22%3A%22%22%2C%22path%22%3A%22%2FUsers%2Flarshostruppedersen%2Fmotorskills%2Fappsim%2Fappsim.py%22%2C%22query%22%3A%22%22%2C%22fragment%22%3A%22%22%7D%2C%22pos%22%3A%7B%22line%22%3A106%2C%22character%22%3A20%7D%7D%5D%2C%2228d9993b-dfd1-4d44-8f82-f65a98863537%22%5D "Go to definition"): Starts the WebSocket server.
-
-## azure_connection.py
-
-
-
-### Description
-This module contains the [`AzureConn`](command:_github.copilot.openSymbolFromReferences?%5B%22%22%2C%5B%7B%22uri%22%3A%7B%22scheme%22%3A%22file%22%2C%22authority%22%3A%22%22%2C%22path%22%3A%22%2FUsers%2Flarshostruppedersen%2Fmotorskills%2Fappsim%2Fappsim.py%22%2C%22query%22%3A%22%22%2C%22fragment%22%3A%22%22%7D%2C%22pos%22%3A%7B%22line%22%3A4%2C%22character%22%3A29%7D%7D%5D%2C%2228d9993b-dfd1-4d44-8f82-f65a98863537%22%5D "Go to definition") class, which handles communication with Azure services.
-
-### Classes
-
-#### [`AzureConn`](command:_github.copilot.openSymbolFromReferences?%5B%22%22%2C%5B%7B%22uri%22%3A%7B%22scheme%22%3A%22file%22%2C%22authority%22%3A%22%22%2C%22path%22%3A%22%2FUsers%2Flarshostruppedersen%2Fmotorskills%2Fappsim%2Fappsim.py%22%2C%22query%22%3A%22%22%2C%22fragment%22%3A%22%22%7D%2C%22pos%22%3A%7B%22line%22%3A4%2C%22character%22%3A29%7D%7D%5D%2C%2228d9993b-dfd1-4d44-8f82-f65a98863537%22%5D "Go to definition")
-Handles communication with Azure services.
-
-- **Methods:**
-  - [`load_exer_azure`](command:_github.copilot.openSymbolFromReferences?%5B%22%22%2C%5B%7B%22uri%22%3A%7B%22scheme%22%3A%22file%22%2C%22authority%22%3A%22%22%2C%22path%22%3A%22%2FUsers%2Flarshostruppedersen%2Fmotorskills%2Fappsim%2Fappsim.py%22%2C%22query%22%3A%22%22%2C%22fragment%22%3A%22%22%7D%2C%22pos%22%3A%7B%22line%22%3A93%2C%22character%22%3A15%7D%7D%5D%2C%2228d9993b-dfd1-4d44-8f82-f65a98863537%22%5D "Go to definition"): Loads exercise data from Azure.
 
 ## exer_elem_rec.py
 

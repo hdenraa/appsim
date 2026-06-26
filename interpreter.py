@@ -4,12 +4,10 @@ import asyncio
 import random
 from datetime import datetime,timedelta
 import uuid
-from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 import copy
 
 class Interpreter():
-    def __init__(self,ws_inbound_queue,ws_outbound_queue,heads_up_queue,exer_elem,logger,azure_conn,state):
+    def __init__(self,ws_inbound_queue,ws_outbound_queue,heads_up_queue,exer_elem,logger,state):
         self.exer_list = []
         self.elem_list= []
         self.exer_dict = {}
@@ -24,7 +22,6 @@ class Interpreter():
         self.current_time = self.start_time
         self.task_result_list = []
         self.countdown_count = 0
-        self.azure_conn = azure_conn
 
         random.seed(str(datetime.now()))
 
@@ -207,8 +204,7 @@ class Interpreter():
 
     def handle_result(self,result):
         self.logger.debug(f'Exercise result: {result}')
-
-        self.azure_conn.upload_result(result)
+        # Azure upload removed; results are currently only logged.
 
 
     async def set_task(self,task,elem_parameters,exer_name):

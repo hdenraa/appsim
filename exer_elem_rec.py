@@ -5,14 +5,13 @@ from aiologger.handlers.files import AsyncFileHandler
 import copy
 
 class ExerElem:
-    def __init__(self,logger,azure_conn,state):
+    def __init__(self,logger,state):
         self.elem_dict= {}
         self.exer_dict = {}
         self.runtime_dict = {}
         self.nextElementId = 0
         self.logger = logger
         self.state = state
-        self.azure_conn = azure_conn
     
     def find_match_element(self,task,elem_lists_dict,task_seq_to_elem_dict):
         self.logger.debug(f'Find element for task: {task}')
@@ -234,24 +233,6 @@ class ExerElem:
             self.logger.debug(f'\nruntime_dict after new element: {self.runtime_dict}\n')
 
         self.state.exer_list_flag.set()
-
-    def load_exer_azure(self):
-
-        self.exer_dict = self.azure_conn.get_exercise_definition()
-
-        for exercise in self.exer_dict['exerciseList']:
-            self.runtime_dict[exercise['exercise']] = exercise
-            self.runtime_dict[exercise['exercise']]['elementsMatch'] = False
-        
-        self.state.exer_list_flag.set()
-
-        self.logger.debug(f'ExerElem: runtime_dict after azure load: {self.runtime_dict}')
-
-        if len(self.elem_dict.values()) > 0:
-            self.merge_exer_elem(self.exer_dict,self.elem_dict)
-        else:
-            self.state.exer_list_flag.set()
-            
 
     def load_exer(self,file):
         with open(file, 'r') as f:
